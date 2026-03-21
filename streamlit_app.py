@@ -1,45 +1,47 @@
 import streamlit as st
 import google.generativeai as genai
-import os
 
 # Seite konfigurieren
 st.set_page_config(page_title="Logik-Detektiv", page_icon="🕵️‍♂️")
 
 # Verbindung zum Key herstellen
 if "GOOGLE_API_KEY" in st.secrets:
-    # Wir erzwingen die stabilste Version
-    os.environ["GOOGLE_API_VERSION"] = "v1" 
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     
-    # WECHSEL: Wir nutzen 'gemini-pro', das ist am kompatibelsten
+    # AUTOMATIK: Wir holen uns die Liste der erlaubten Modelle
     try:
-        model = genai.GenerativeModel('gemini-pro')
-    except Exception:
-        # Falls selbst das nicht geht, versuchen wir die absolute Basis-Variante
-        model = genai.GenerativeModel('models/gemini-pro')
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        if available_models:
+            # Wir nehmen das erste Modell aus deiner Liste
+            selected_model = available_models[0]
+            model = genai.GenerativeModel(selected_model)
+        else:
+            st.error("Keine passenden Modelle gefunden.")
+            st.stop()
+    except Exception as e:
+        st.error(f"Fehler beim Laden der Modelle: {e}")
+        st.stop()
 else:
     st.error("Schlüssel fehlt in den Secrets! ❌")
     st.stop()
 
 st.title("🕵️‍♂️ Der Logik-Detektiv")
-st.write("Füttere mich mit deinem Plot, und ich finde die Löcher!")
+st.write(f"Aktiviertes Modell: `{selected_model}`") # Zeigt dir an, was er nutzt
 
 # Eingabebereich
 user_input = st.text_area("Beschreibe deine Szene oder deinen Plot-Punkt:", 
-                          placeholder="z.B.: Die Figur sieht im Dunkeln eine rote Krawatte...")
+                          placeholder="z.B.: Er schloss die Tür von außen ab, obwohl er noch im Zimmer stand...")
 
 if st.button("Auf Logikfehler prüfen"):
     if user_input:
         with st.spinner('Der Detektiv kombiniert...'):
             try:
-                # Wir halten den Prompt simpel für den ersten Erfolgstest
-                prompt = f"Prüfe diesen Text auf Logikfehler: {user_input}"
+                prompt = f"Analysiere diesen Roman-Plot auf Logikfehler oder unrealistische Abläufe: {user_input}"
                 response = model.generate_content(prompt)
                 
                 st.subheader("Analyse-Ergebnis:")
                 st.info(response.text)
             except Exception as e:
-                st.error(f"Fehler bei der Anfrage: {e}")
-                st.write("Hinweis: Überprüfe, ob dein API-Key in der secrets.toml wirklich korrekt ist.")
+                st.error(f"Analyse fehlgeschlagen: {e}")
     else:
         st.warning("Bitte gib erst einen Text ein!")
