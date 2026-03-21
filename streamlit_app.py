@@ -7,7 +7,7 @@ st.set_page_config(page_title="Logik-Detektiv", page_icon="🕵️‍♂️")
 # Verbindung zum Key herstellen
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 else:
     st.error("Schlüssel fehlt in den Secrets! ❌")
     st.stop()
