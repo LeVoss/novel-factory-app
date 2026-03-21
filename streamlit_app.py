@@ -1,6 +1,9 @@
 import streamlit as st
 import google.generativeai as genai
-
+import os
+# Verbindung zum "Tresor" herstellen
+if "GOOGLE_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 # Das Gehirn der Novel Factory
 st.set_page_config(page_title="The Novel Factory - Logik-Detektiv", layout="centered")
 
