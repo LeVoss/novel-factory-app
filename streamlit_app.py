@@ -1,14 +1,17 @@
 import streamlit as st
 import google.generativeai as genai
+import os
 
 # Seite konfigurieren
 st.set_page_config(page_title="Logik-Detektiv", page_icon="🕵️‍♂️")
 
 # Verbindung zum Key herstellen
 if "GOOGLE_API_KEY" in st.secrets:
+    # WICHTIG: Wir setzen die API-Version explizit auf v1 (stabil) statt v1beta
+    os.environ["GOOGLE_API_VERSION"] = "v1" 
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    # Fehlerkorrektur: Wir nutzen den Namen ohne das Präfix 'models/', 
-    # da das SDK dies intern oft selbst regelt.
+    
+    # Wir probieren das stabilste Modell-Kürzel
     model = genai.GenerativeModel('gemini-1.5-flash')
 else:
     st.error("Schlüssel fehlt in den Secrets! ❌")
@@ -25,15 +28,13 @@ if st.button("Auf Logikfehler prüfen"):
     if user_input:
         with st.spinner('Der Detektiv kombiniert...'):
             try:
-                # Prompt-Konstruktion
-                prompt = f"Analysiere folgenden Roman-Plot auf Logikfehler oder unrealistische Abläufe: {user_input}"
-                # Hier rufen wir die Generierung auf
+                prompt = f"Du bist ein Logik-Detektiv für Romanautoren. Analysiere diesen Plot auf Fehler: {user_input}"
                 response = model.generate_content(prompt)
                 
                 st.subheader("Analyse-Ergebnis:")
                 st.info(response.text)
             except Exception as e:
-                # Falls der 404-Fehler erneut auftritt, zeigt uns das System hier Details
-                st.error(f"Da ist was schiefgelaufen: {e}")
+                st.error(f"Schnittstellen-Fehler: {e}")
+                st.write("Tipp: Falls wieder 404 erscheint, versuche 'gemini-pro' statt 'gemini-1.5-flash' im Code.")
     else:
-        st.warning("Bitte gib erst einen Text ein, den ich prüfen soll!")
+        st.warning("Bitte gib erst einen Text ein!")
