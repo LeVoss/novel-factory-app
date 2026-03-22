@@ -4,7 +4,7 @@ from docx import Document
 import io
 
 # 1. Page Configuration
-st.set_config = st.set_page_config(
+st.set_page_config(
     page_title="Manuscript-Check | Pro Logic Detective", 
     page_icon="🕵️‍♂️", 
     layout="wide"
