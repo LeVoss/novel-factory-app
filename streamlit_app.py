@@ -137,4 +137,4 @@ with col2:
 
 # Footer
 st.markdown("---")
-st.caption("© 2024 Manuscript-Check | Built by Authors, for Authors.")
+st.caption("© 2026 Manuscript-Check | Built by Authors, for Authors.")
