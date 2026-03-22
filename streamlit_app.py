@@ -1,57 +1,108 @@
 import streamlit as st
 import google.generativeai as genai
+from docx import Document
+import io
 
-# Seite konfigurieren
-st.set_page_config(page_title="Profi-Logik-Detektiv", page_icon="🕵️‍♂️", layout="wide")
+# Page Configuration
+st.set_page_config(page_title="Manuscript-Check | Pro Logic Detective", page_icon="🕵️‍♂️", layout="wide")
 
-# Verbindung zum Key herstellen
+# Custom CSS for a professional "Landing Page" feel
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f8f9fa;
+    }
+    .stButton>button {
+        width: 100%;
+        border-radius: 5px;
+        height: 3em;
+        background-color: #007bff;
+        color: white;
+    }
+    .report-text {
+        font-family: 'Inter', sans-serif;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Connection to Gemini API
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     try:
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         model = genai.GenerativeModel(available_models[0])
     except Exception as e:
-        st.error(f"Fehler beim Laden: {e}")
+        st.error(f"Connection Error: {e}")
         st.stop()
 else:
-    st.error("Schlüssel fehlt! ❌")
+    st.error("API Key missing! Please check your secrets.toml.")
     st.stop()
 
-st.title("🕵️‍♂️ Der Profi-Logik-Detektiv")
+def read_docx(file):
+    doc = Document(file)
+    return "\n".join([para.text for para in doc.paragraphs])
+
+# --- LANDING PAGE CONTENT ---
+st.title("🕵️‍♂️ Manuscript-Check")
+st.subheader("Catch Plot Holes Before Your Readers Do.")
+st.markdown("""
+**Stop worrying about continuity errors.** Manuscript-Check analyzes your chapters for physical impossibilities, 
+timeline slips, and character inconsistencies in seconds.
+""")
 st.markdown("---")
 
-# Zwei Spalten Layout
-col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
-    st.subheader("Dein Manuskript-Auszug")
-    user_input = st.text_area("Hier den Text hineinkopieren:", height=400, 
-                              placeholder="Tippe oder kopiere deine Szene hierher...")
+    st.header("1. Input Your Chapter")
     
-    analyze_button = st.button("🔍 Tiefen-Analyse starten", use_container_width=True)
+    # File Upload
+    uploaded_file = st.file_uploader("Upload Word Document (.docx)", type=["docx"])
+    
+    if uploaded_file is not None:
+        file_text = read_docx(uploaded_file)
+        user_input = st.text_area("Review/Edit your text:", value=file_text, height=400)
+    else:
+        user_input = st.text_area("Paste your scene here:", height=400, placeholder="Once upon a time...")
+    
+    analyze_button = st.button("🔍 Run Deep Logic Analysis")
 
 with col2:
-    st.subheader("Analyse-Protokoll")
+    st.header("2. Analysis Report")
     if analyze_button and user_input:
-        with st.spinner('Der Detektiv untersucht die Indizien...'):
+        with st.spinner('The Detective is scrutinizing your manuscript...'):
             try:
-                # Der "System-Prompt" gibt die Struktur vor
+                # The NEW English System Prompt
                 system_instruction = """
-                Du bist ein erfahrener Lektor und Logik-Experte für Romane. 
-                Analysiere den folgenden Text streng auf Widersprüche. 
-                Strukturiere deine Antwort IMMER in diesen Kategorien:
-                1. 🌍 PHYSIK & UMGEBUNG (z.B. Lichtverhältnisse, Entfernungen)
-                2. ⏱️ ZEIT & ABLAUF (z.B. unmögliche Gleichzeitigkeit)
-                3. 👤 CHARAKTER-LOGIK (z.B. Wissen, das die Figur noch nicht haben kann)
-                4. 💡 VERBESSERUNGSVORSCHLAG (Wie könnte man es logisch lösen?)
-                Wenn du in einer Kategorie nichts findest, schreibe 'Keine Auffälligkeiten'.
+                You are a world-class developmental editor and logic expert for fiction. 
+                Analyze the provided text strictly for contradictions and plot holes. 
+                Structure your response using these EXACT categories:
+                
+                1. 🌍 PHYSICALITY & ENVIRONMENT (e.g., lighting, distances, gravity)
+                2. ⏱️ TIMELINE & CONTINUITY (e.g., impossible sequences, time skips)
+                3. 👤 CHARACTER LOGIC (e.g., internal contradictions, forbidden knowledge)
+                4. 💡 PRO-TIP FOR FIXING (How to resolve the issues creatively)
+                
+                If a category is clear, state 'No issues detected.' Use a professional, encouraging tone.
                 """
                 
-                response = model.generate_content(f"{system_instruction}\n\nText: {user_input}")
-                st.markdown(response.text)
+                response = model.generate_content(f"{system_instruction}\n\nManuscript Content: {user_input}")
+                
+                st.markdown(f'<div class="report-text">{response.text}</div>', unsafe_allow_html=True)
+                
+                # Download Button
+                st.download_button(
+                    label="📥 Download Analysis Report (.txt)",
+                    data=response.text,
+                    file_name="manuscript_logic_report.txt",
+                    mime="text/plain"
+                )
+                
             except Exception as e:
-                st.error(f"Analyse abgebrochen: {e}")
-    elif analyze_button:
-        st.warning("Bitte gib zuerst einen Text ein!")
+                st.error(f"Analysis failed: {e}")
     else:
-        st.info("Warte auf Eingabe... Sobald du links Text einfügst und den Button drückst, erscheint hier das Protokoll.")
+        st.info("Awaiting input... Upload or paste your text on the left to start the analysis.")
+
+# Footer
+st.markdown("---")
+st.caption("Built by Authors, for Authors. | Confidential & Private Analysis")
